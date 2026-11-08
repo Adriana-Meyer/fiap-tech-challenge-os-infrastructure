@@ -5,7 +5,7 @@ variable "aws_region" {
 }
 
 variable "project_name" {
-  description = "Fixed prefix applied to every resource name/tag, so Repo 3 (RDS) can discover this repo's networking via data sources instead of manual copy-paste."
+  description = "Fixed prefix applied to every resource name/tag, so os-database-infrastructure (RDS) can discover this repo's networking via data sources instead of manual copy-paste."
   type        = string
   default     = "tech-challenge"
 }
@@ -32,7 +32,7 @@ variable "private_subnet_cidrs" {
 }
 
 variable "cluster_name" {
-  description = "Fixed, well-known name — Repo 3 references this same name via a data source to find the cluster's VPC/security group without needing this repo's Terraform state."
+  description = "Fixed, well-known name — os-database-infrastructure references this same name via a data source to find the cluster's VPC/security group without needing this repo's Terraform state."
   type        = string
   default     = "tech-challenge-eks"
 }

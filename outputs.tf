@@ -19,7 +19,7 @@ output "private_subnet_ids" {
 }
 
 output "cluster_security_group_id" {
-  description = "Repo 3 (RDS) allows MySQL ingress from this security group instead of a broader CIDR."
+  description = "os-database-infrastructure (RDS) allows MySQL ingress from this security group instead of a broader CIDR."
   value       = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
 }
 

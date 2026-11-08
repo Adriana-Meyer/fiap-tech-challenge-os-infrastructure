@@ -1,6 +1,6 @@
-# fiap-tech-challenge-kubernetes-infrastructure
+# fiap-tech-challenge-os-infrastructure
 
-Infraestrutura de rede e cluster Kubernetes (Amazon EKS) do Tech Challenge Fase 3 — FIAP Pós-Tech, Arquitetura de Software, turma 15SOAT. Repositório 2 dos 4 exigidos pela Fase 3: provisiona, via Terraform, toda a infraestrutura de nuvem necessária para rodar a [aplicação principal](https://github.com/Adriana-Meyer/fiap-tech-challenge-pos-tech) em Kubernetes na AWS — exceto o banco de dados, que fica no [Repositório 3](https://github.com/Adriana-Meyer/fiap-tech-challenge-database-infrastructure), e a Lambda/API Gateway, que ficam no [Repositório 1](https://github.com/Adriana-Meyer/fiap-tech-challenge-API-gateway-function-serverless).
+Infraestrutura de rede e cluster Kubernetes (Amazon EKS) do Tech Challenge Fase 3 — FIAP Pós-Tech, Arquitetura de Software, turma 15SOAT. Um dos 4 repositórios exigidos pela Fase 3 (na Fase 4, é a infraestrutura geral do OS Service): provisiona, via Terraform, toda a infraestrutura de nuvem necessária para rodar a [aplicação principal](https://github.com/Adriana-Meyer/fiap-tech-challenge-os-service) em Kubernetes na AWS — exceto o banco de dados, que fica no [os-database-infrastructure](https://github.com/Adriana-Meyer/fiap-tech-challenge-os-database-infrastructure), e a Lambda/API Gateway, que ficam no [API Gateway + Lambda](https://github.com/Adriana-Meyer/fiap-tech-challenge-API-gateway-function-serverless).
 
 ## Tecnologias
 
@@ -48,9 +48,9 @@ flowchart TB
         end
     end
 
-    RDS_Repo3["RDS MySQL<br/>(Repositório 3)"]:::ext
-    APIGW_Repo1["API Gateway + Lambda<br/>(Repositório 1)"]:::ext
-    App_Repo4["App em Kubernetes<br/>(Repositório 4)"]:::ext
+    RDS_Repo3["RDS MySQL<br/>(os-database-infrastructure)"]:::ext
+    APIGW_Repo1["API Gateway + Lambda"]:::ext
+    App_Repo4["App em Kubernetes<br/>(os-service)"]:::ext
 
     Internet --> IGW --> Public
     Public --> NAT --> Private
@@ -62,13 +62,13 @@ flowchart TB
     MetricsServer -. "CPU/memória p/ HPA" .-> App_Repo4
 ```
 
-**Decisões de desenho** (detalhadas nos ADRs/RFCs centralizados no repositório da App, pasta [`docs/`](https://github.com/Adriana-Meyer/fiap-tech-challenge-pos-tech/tree/main/docs)):
+**Decisões de desenho** (detalhadas nos ADRs/RFCs centralizados no repositório da App, pasta [`docs/`](https://github.com/Adriana-Meyer/fiap-tech-challenge-os-service/tree/main/docs)):
 - Cluster e Node Group usam o role `LabEksClusterRole` já existente na conta AWS Academy — o Learner Lab não permite criar roles/políticas IAM novos.
 - 1 único NAT Gateway (não um por AZ) para reduzir custo, visto que trata-se de um projeto acadêmico e com orçamento limitado na AWS.
 - Node Group limitado a no máximo 2 instâncias `t3.medium`: o Learner Lab tem um teto de 9 instâncias EC2 simultâneas e 32 vCPUs na conta inteira (20+ instâncias derruba a conta), então o node group precisa deixar folga para outros usos eventuais de EC2.
-- VPC e subnets recebem tags fixas (`Name`, `Tier=public/private`) e o cluster tem um nome fixo (`tech-challenge-eks`) para o Repositório 3 conseguir localizar a rede e o security group do cluster via `data source` do Terraform, sem precisar copiar valores manualmente entre repositórios.
+- VPC e subnets recebem tags fixas (`Name`, `Tier=public/private`) e o cluster tem um nome fixo (`tech-challenge-eks`) para o os-database-infrastructure conseguir localizar a rede e o security group do cluster via `data source` do Terraform, sem precisar copiar valores manualmente entre repositórios.
 - A integração do New Relic com o Kubernetes (`nri-bundle`) fica neste repositório por ser infraestrutura de cluster, não da aplicação — o `helm_release` só é criado quando a variável `new_relic_license_key` é definida (evita quebrar o `apply` antes da etapa de observabilidade).
-- `metrics-server` instalado como add-on gerenciado do EKS (`aws_eks_addon`), não Helm — a AWS já oferece nativamente, sem exigir role IAM própria (diferente do New Relic, que precisa de um chart de terceiros). Sem ele, o `HorizontalPodAutoscaler` do Repositório 4 fica sem métrica de CPU/memória pra decidir quando escalar.
+- `metrics-server` instalado como add-on gerenciado do EKS (`aws_eks_addon`), não Helm — a AWS já oferece nativamente, sem exigir role IAM própria (diferente do New Relic, que precisa de um chart de terceiros). Sem ele, o `HorizontalPodAutoscaler` do os-service fica sem métrica de CPU/memória pra decidir quando escalar.
 
 ## Pré-requisitos
 
@@ -113,4 +113,4 @@ Todas têm valor padrão (ver [`variables.tf`](variables.tf)); a única que norm
 
 ## APIs
 
-Este repositório não expõe API própria — é infraestrutura de plataforma. A documentação Swagger da aplicação está no [Repositório 4](https://github.com/Adriana-Meyer/fiap-tech-challenge-pos-tech#documenta%C3%A7%C3%A3o-da-api-swagger-ui).
+Este repositório não expõe API própria — é infraestrutura de plataforma. A documentação Swagger da aplicação está no [os-service](https://github.com/Adriana-Meyer/fiap-tech-challenge-os-service#documenta%C3%A7%C3%A3o-da-api-swagger-ui).
