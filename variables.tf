@@ -46,12 +46,13 @@ variable "kubernetes_version" {
 variable "node_instance_type" {
   description = "Must be nano/micro/small/medium/large — the only sizes allowed on AWS Academy Learner Lab."
   type        = string
-  default     = "t3.medium"
+  default     = "t3.large"
 }
 
 variable "node_desired_size" {
-  type    = number
-  default = 1
+  description = "Two nodes by default: four Java services (each with the New Relic agent) plus the cluster add-ons do not fit with comfortable headroom in a single node."
+  type        = number
+  default     = 2
 }
 
 variable "node_min_size" {
@@ -60,9 +61,21 @@ variable "node_min_size" {
 }
 
 variable "node_max_size" {
-  description = "Kept low on purpose: Learner Lab caps the whole account at 9 concurrent EC2 instances and 32 vCPUs; 20+ triggers account termination."
+  description = "Kept low on purpose: Learner Lab caps the whole account at 9 concurrent EC2 instances and 32 vCPUs (20+ triggers account termination). Three t3.large nodes use 6 vCPUs."
   type        = number
-  default     = 2
+  default     = 3
+}
+
+variable "saga_max_receive_count" {
+  description = "How many times SQS delivers a saga message before moving it to the dead-letter queue."
+  type        = number
+  default     = 3
+}
+
+variable "queue_visibility_timeout_seconds" {
+  description = "How long a message being handled stays hidden from other consumers. Must be longer than the slowest handling of one message."
+  type        = number
+  default     = 30
 }
 
 variable "new_relic_license_key" {
