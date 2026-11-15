@@ -1,6 +1,6 @@
 # fiap-tech-challenge-os-infrastructure
 
-Infraestrutura de rede e cluster Kubernetes (Amazon EKS) do Tech Challenge Fase 3 — FIAP Pós-Tech, Arquitetura de Software, turma 15SOAT. Um dos 4 repositórios exigidos pela Fase 3 (na Fase 4, é a infraestrutura geral do OS Service e hospeda a mensageria compartilhada da saga): provisiona, via Terraform, toda a infraestrutura de nuvem necessária para rodar a [aplicação principal](https://github.com/Adriana-Meyer/fiap-tech-challenge-os-service) em Kubernetes na AWS — exceto o banco de dados, que fica no [os-database-infrastructure](https://github.com/Adriana-Meyer/fiap-tech-challenge-os-database-infrastructure), e a Lambda/API Gateway, que ficam no [API Gateway + Lambda](https://github.com/Adriana-Meyer/fiap-tech-challenge-API-gateway-function-serverless).
+Infraestrutura de rede e cluster Kubernetes (Amazon EKS) do Tech Challenge — FIAP Pós-Tech, Arquitetura de Software, turma 15SOAT. É a infraestrutura geral do OS Service e hospeda a mensageria compartilhada da saga: provisiona, via Terraform, toda a infraestrutura de nuvem necessária para rodar a [aplicação principal](https://github.com/Adriana-Meyer/fiap-tech-challenge-os-service) em Kubernetes na AWS — exceto o banco de dados, que fica no [os-database-infrastructure](https://github.com/Adriana-Meyer/fiap-tech-challenge-os-database-infrastructure), e a Lambda/API Gateway, que ficam no [API Gateway + Lambda](https://github.com/Adriana-Meyer/fiap-tech-challenge-API-gateway-function-serverless).
 
 ## Tecnologias
 
@@ -12,7 +12,7 @@ Infraestrutura de rede e cluster Kubernetes (Amazon EKS) do Tech Challenge Fase 
 | Cluster | Amazon EKS (Managed Node Group) |
 | Observabilidade de cluster | New Relic Kubernetes integration (`nri-bundle`, via Helm) |
 | Métricas para o HPA | `metrics-server` (EKS-managed add-on) |
-| Mensageria da saga (Fase 4) | Amazon SNS (tópico `saga-events`) + Amazon SQS (fila `os-saga-events` e DLQ) |
+| Mensageria da saga | Amazon SNS (tópico `saga-events`) + Amazon SQS (fila `os-saga-events` e DLQ) |
 | CI/CD | GitHub Actions |
 
 ## Arquitetura
@@ -51,7 +51,7 @@ flowchart TB
 
     SNS["SNS saga-events"]:::subnet
     SQS["SQS os-saga-events<br/>+ DLQ"]:::subnet
-    Services["Billing, Inventory,<br/>Execution (Fase 4)"]:::ext
+    Services["Billing, Inventory,<br/>Execution"]:::ext
     RDS_Repo3["RDS MySQL<br/>(os-database-infrastructure)"]:::ext
     APIGW_Repo1["API Gateway + Lambda"]:::ext
     App_Repo4["App em Kubernetes<br/>(os-service)"]:::ext
@@ -72,7 +72,7 @@ flowchart TB
 **Decisões de desenho** (detalhadas nos ADRs/RFCs centralizados no repositório da App, pasta [`docs/`](https://github.com/Adriana-Meyer/fiap-tech-challenge-os-service/tree/main/docs)):
 - O cluster usa o role `LabEksClusterRole` e o Node Group o `LabEksNodeRole`, ambos já existentes na conta AWS Academy (localizados por parte do nome, porque cada instância do Lab recebe um prefixo e um sufixo próprios) — o Learner Lab não permite criar roles/políticas IAM novos.
 - 1 único NAT Gateway (não um por AZ) para reduzir custo, visto que trata-se de um projeto acadêmico e com orçamento limitado na AWS.
-- Node Group de 1 a 3 instâncias `t3.large` (2 por padrão). Na Fase 4 o cluster roda quatro serviços Java, cada um com o agente do New Relic, mais os add-ons do cluster; em `t3.medium` (4 GiB) isso não cabe com folga. O Learner Lab tem um teto de 9 instâncias EC2 simultâneas e 32 vCPUs na conta inteira (20+ instâncias derruba a conta): três `t3.large` usam 6 vCPUs, o que deixa folga para outros usos eventuais de EC2. `t3.large` está entre os tamanhos permitidos no Lab (até `large`).
+- Node Group de 1 a 3 instâncias `t3.large` (2 por padrão). O cluster roda quatro serviços Java, cada um com o agente do New Relic, mais os add-ons do cluster; em `t3.medium` (4 GiB) isso não cabe com folga. O Learner Lab tem um teto de 9 instâncias EC2 simultâneas e 32 vCPUs na conta inteira (20+ instâncias derruba a conta): três `t3.large` usam 6 vCPUs, o que deixa folga para outros usos eventuais de EC2. `t3.large` está entre os tamanhos permitidos no Lab (até `large`).
 - **Mensageria da saga** (`messaging.tf`): o tópico SNS `saga-events` recebe as respostas do Billing, do Inventory e do Execution, e a fila `os-saga-events` (assinante do tópico) entrega ao OS. As filas de **comando** de cada serviço ficam no `*-infrastructure` do próprio serviço. Detalhes:
   - **Nomes fixos, sem prefixo de projeto:** os serviços usam `saga-events` e `os-saga-events` por padrão e montam o ARN do tópico a partir da conta, da região e desse nome. O output `saga_events_topic_arn` serve para conferir.
   - **Entrega bruta** (`raw_message_delivery`): o corpo da fila é o envelope da mensagem, sem o invólucro do SNS, que é o que o listener do OS espera.
@@ -107,7 +107,7 @@ $(terraform output -raw kubeconfig_command)
 kubectl get nodes
 ```
 
-Para desativar tudo ao final da sessão de estudo (economiza orçamento do Lab):
+Para desativar tudo ao final da sessão do Lab (economiza orçamento do Lab):
 
 ```bash
 terraform destroy

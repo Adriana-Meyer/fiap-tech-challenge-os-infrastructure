@@ -1,4 +1,4 @@
-# Messaging backbone of the Phase 4 saga.
+# Messaging backbone of the saga.
 #
 # Billing, Inventory and Execution answer the OS service through one SNS topic,
 # and the OS reads the answers from its own queue, which is subscribed to it:
