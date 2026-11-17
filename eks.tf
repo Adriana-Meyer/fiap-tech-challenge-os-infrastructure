@@ -1,20 +1,27 @@
 # AWS Academy Learner Lab only allows pre-created IAM roles (no custom
-# roles/policies) — but the actual names aren't the clean "LabEksClusterRole"/
-# "LabEksNodeRole" the generic Lab docs describe. Each lab instance gets a
-# unique prefix/suffix (e.g. "c221562a...-LabEksClusterRole-x7tTWFEXrXCi"),
-# and the cluster and node group use two DIFFERENT roles, not one shared
-# role — so an exact-name lookup fails. Match by substring instead.
+# roles/policies).
+#
+# Cluster: the actual name isn't the clean "LabEksClusterRole" the generic Lab
+# docs describe. Each lab instance gets a unique prefix/suffix (e.g.
+# "c221562a...-LabEksClusterRole-x7tTWFEXrXCi"), so an exact-name lookup fails.
+# Match by substring instead.
+#
+# Nodes: the pods reach SQS, SNS and DynamoDB with the credentials of the node
+# role. The pre-created "...-LabEksNodeRole-..." role only carries the ECR, CNI
+# and worker-node policies, with no access to those services, so the node group
+# uses "LabRole" instead. It is the role the Lab provides to use the allowed
+# services, and it trusts ec2.amazonaws.com.
 data "aws_iam_roles" "eks_cluster_role" {
   name_regex = ".*LabEksClusterRole.*"
 }
 
-data "aws_iam_roles" "eks_node_role" {
-  name_regex = ".*LabEksNodeRole.*"
+data "aws_iam_role" "eks_node_role" {
+  name = "LabRole"
 }
 
 locals {
   eks_cluster_role_arn = tolist(data.aws_iam_roles.eks_cluster_role.arns)[0]
-  eks_node_role_arn    = tolist(data.aws_iam_roles.eks_node_role.arns)[0]
+  eks_node_role_arn    = data.aws_iam_role.eks_node_role.arn
 }
 
 resource "aws_eks_cluster" "main" {
