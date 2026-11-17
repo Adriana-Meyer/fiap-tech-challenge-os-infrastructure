@@ -43,7 +43,7 @@ flowchart TB
 
         subgraph EKS["EKS Cluster tech-challenge-eks"]
             direction TB
-            NodeGroup["Managed Node Group<br/>1-3 nós t3.large (2 por padrão)<br/>role: LabEksNodeRole"]:::eks
+            NodeGroup["Managed Node Group<br/>1-3 nós t3.large (2 por padrão)<br/>role: LabRole"]:::eks
             NewRelicDaemon["New Relic nri-bundle<br/>(Helm release)"]:::eks
             MetricsServer["metrics-server<br/>(EKS add-on)"]:::eks
         end
@@ -70,7 +70,7 @@ flowchart TB
 ```
 
 **Decisões de desenho** (detalhadas nos ADRs/RFCs centralizados no repositório da App, pasta [`docs/`](https://github.com/Adriana-Meyer/fiap-tech-challenge-os-service/tree/main/docs)):
-- O cluster usa o role `LabEksClusterRole` e o Node Group o `LabEksNodeRole`, ambos já existentes na conta AWS Academy (localizados por parte do nome, porque cada instância do Lab recebe um prefixo e um sufixo próprios) — o Learner Lab não permite criar roles/políticas IAM novos.
+- O cluster usa o role `LabEksClusterRole` (localizado por parte do nome, porque cada instância do Lab recebe um prefixo e um sufixo próprios) e o Node Group usa o `LabRole`, ambos já existentes na conta AWS Academy — o Learner Lab não permite criar roles/políticas IAM novos. O Node Group não usa o `LabEksNodeRole` porque ele só traz as políticas de ECR, CNI e worker node, sem acesso a SQS, SNS e DynamoDB.
 - 1 único NAT Gateway (não um por AZ) para reduzir custo, visto que trata-se de um projeto acadêmico e com orçamento limitado na AWS.
 - Node Group de 1 a 3 instâncias `t3.large` (2 por padrão). O cluster roda quatro serviços Java, cada um com o agente do New Relic, mais os add-ons do cluster; em `t3.medium` (4 GiB) isso não cabe com folga. O Learner Lab tem um teto de 9 instâncias EC2 simultâneas e 32 vCPUs na conta inteira (20+ instâncias derruba a conta): três `t3.large` usam 6 vCPUs, o que deixa folga para outros usos eventuais de EC2. `t3.large` está entre os tamanhos permitidos no Lab (até `large`).
 - **Mensageria da saga** (`messaging.tf`): o tópico SNS `saga-events` recebe as respostas do Billing, do Inventory e do Execution, e a fila `os-saga-events` (assinante do tópico) entrega ao OS. As filas de **comando** de cada serviço ficam no `*-infrastructure` do próprio serviço. Detalhes:
@@ -80,7 +80,7 @@ flowchart TB
   - **Política da fila:** permite `sqs:SendMessage` somente ao serviço SNS e somente a partir deste tópico (`aws:SourceArn`). As permissões das roles dos pods não são afetadas, porque dentro da mesma conta basta uma das políticas (a da identidade ou a do recurso).
   - Criptografia em repouso com SSE gerenciado pelo SQS.
   - O mesmo desenho roda localmente em `os-service/e2e/localstack-init/01-saga-topology.sh`.
-- **Permissões do cluster para SQS/SNS/DynamoDB:** os pods usam o role do nó (`LabEksNodeRole`), que o Learner Lab não deixa alterar. Se esse role não permitir SQS/SNS/DynamoDB, o plano alternativo é fornecer as credenciais da sessão aos pods por um Secret. Isso é verificado na validação no Lab.
+- **Permissões do cluster para SQS/SNS/DynamoDB:** os pods usam o role do nó, que é o `LabRole`, o role que o Learner Lab oferece para usar esses serviços. Se ele não permitir SQS/SNS/DynamoDB, o plano alternativo é fornecer as credenciais da sessão aos pods por um Secret. Isso é verificado na validação no Lab.
 - VPC e subnets recebem tags fixas (`Name`, `Tier=public/private`) e o cluster tem um nome fixo (`tech-challenge-eks`) para o os-database-infrastructure conseguir localizar a rede e o security group do cluster via `data source` do Terraform, sem precisar copiar valores manualmente entre repositórios.
 - A integração do New Relic com o Kubernetes (`nri-bundle`) fica neste repositório por ser infraestrutura de cluster, não da aplicação — o `helm_release` só é criado quando a variável `new_relic_license_key` é definida (evita quebrar o `apply` antes da etapa de observabilidade).
 - `metrics-server` instalado como add-on gerenciado do EKS (`aws_eks_addon`), não Helm — a AWS já oferece nativamente, sem exigir role IAM própria (diferente do New Relic, que precisa de um chart de terceiros). Sem ele, o `HorizontalPodAutoscaler` do os-service fica sem métrica de CPU/memória pra decidir quando escalar.
