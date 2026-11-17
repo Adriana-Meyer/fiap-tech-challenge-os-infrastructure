@@ -1,4 +1,4 @@
-# EKS doesn't ship metrics-server by default — Repo 4's HPA needs it to
+# EKS doesn't ship metrics-server by default — os-service's HPA needs it to
 # read CPU/memory via metrics.k8s.io. EKS-managed add-on instead of Helm
 # since AWS offers it natively and it needs no IAM role (only talks to
 # kubelets, never an AWS API).
